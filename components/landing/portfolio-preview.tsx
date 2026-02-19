@@ -40,7 +40,7 @@ export function PortfolioPreview() {
               <div className="h-3 w-3 rounded-full bg-border" />
             </div>
             <div className="mx-auto rounded-md bg-background px-4 py-1 text-xs text-muted-foreground">
-              portlify.app/Zino243
+              portlify.online/Zino243
             </div>
           </div>
 

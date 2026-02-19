@@ -27,7 +27,7 @@ export function DashboardSidebar() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-6 py-5">
         <Link href="/" className="text-xl font-bold tracking-tight text-foreground">
-          folio
+          portlify
         </Link>
         <button className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close sidebar">
           <X className="h-5 w-5 text-muted-foreground" />

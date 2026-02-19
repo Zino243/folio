@@ -47,7 +47,7 @@ export function PublicFooter({ portfolio }: PublicFooterProps) {
           <p className="text-sm text-muted-foreground">
             Built with{" "}
             <a href="/" className="font-medium text-foreground underline-offset-4 hover:underline">
-              Folio
+              portlify
             </a>
           </p>
         </div>
