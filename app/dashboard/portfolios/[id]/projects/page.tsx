@@ -13,6 +13,7 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
   const router = useRouter()
   const [portfolio, setPortfolio] = useState<any>(null)
   const [projects, setProjects] = useState<any[]>([])
+  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [id, setId] = useState<string>("")
   const supabase = createClient()
@@ -34,7 +35,8 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
         return
       }
 
-      const [{ data: portfolioData }, { data: projectsData }] = await Promise.all([
+      const [{ data: profileData }, { data: portfolioData }, { data: projectsData }] = await Promise.all([
+        supabase.from('profiles').select('projects_limit').eq('id', user.id).single(),
         supabase.from('portfolios').select('*').eq('id', portfolioId).eq('user_id', user.id).single(),
         supabase.from('projects').select('*').eq('portfolio_id', portfolioId).order('created_at', { ascending: false })
       ])
@@ -44,6 +46,7 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
         return
       }
 
+      setProfile(profileData)
       setPortfolio(portfolioData)
       setProjects(projectsData || [])
     } catch (error) {
@@ -52,6 +55,9 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
       setLoading(false)
     }
   }
+
+  const maxProjects = profile?.projects_limit || 3
+  const canCreate = projects.length < maxProjects
 
   if (loading) {
     return <div className="flex justify-center p-8">Loading...</div>
@@ -72,15 +78,30 @@ export default function ProjectsPage({ params }: { params: Promise<{ id: string 
             {portfolio.name}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {(projects?.length || 0)} project{(projects?.length || 0) !== 1 ? "s" : ""}
+            {projects.length} of {maxProjects} projects used
           </p>
         </div>
-        <Link href={`/dashboard/portfolios/${id}/projects/new`}>
-          <Button className="gap-2">
+        {canCreate ? (
+          <Link href={`/dashboard/portfolios/${id}/projects/new`}>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Project
+            </Button>
+          </Link>
+        ) : (
+          <Button disabled className="gap-2">
             <Plus className="h-4 w-4" />
-            Add Project
+            Limit Reached
           </Button>
-        </Link>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2 overflow-hidden rounded-full bg-secondary">
+        <div
+          className="h-full rounded-full bg-foreground transition-all"
+          style={{ width: `${Math.min((projects.length / maxProjects) * 100, 100)}%` }}
+        />
       </div>
 
       {!projects || projects.length === 0 ? (

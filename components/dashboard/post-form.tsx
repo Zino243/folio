@@ -28,11 +28,13 @@ interface Post {
 interface PostFormProps {
   posts: Post[]
   onChange: (posts: Post[]) => void
+  blogLimit?: number
 }
 
-export function PostForm({ posts, onChange }: PostFormProps) {
+export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState<Partial<Post>>({
     titulo: "",
     contenido: "",
@@ -93,10 +95,16 @@ export function PostForm({ posts, onChange }: PostFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+
+    if (!editingId && blogLimit > 0 && posts.length >= blogLimit) {
+      setError(`Has alcanzado el límite de ${blogLimit} posts. Compra un pack para crear más.`)
+      return
+    }
 
     try {
       const postData = {
@@ -194,15 +202,36 @@ export function PostForm({ posts, onChange }: PostFormProps) {
         <CardTitle className="text-base flex items-center gap-2">
           <FileText className="h-4 w-4" />
           Blog Posts
+          {blogLimit > 0 && (
+            <span className="text-xs font-normal text-muted-foreground">
+              ({posts.length}/{blogLimit})
+            </span>
+          )}
         </CardTitle>
         {!isAdding && (
-          <Button type="button" variant="outline" size="sm" onClick={() => setIsAdding(true)}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              if (blogLimit > 0 && posts.length >= blogLimit) {
+                setError(`Has alcanzado el límite de ${blogLimit} posts. Compra un pack para crear más.`)
+              } else {
+                setIsAdding(true)
+              }
+            }}
+          >
             <Plus className="h-4 w-4 mr-1" />
             Add
           </Button>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
+        {error && (
+          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
         {posts.length > 0 && !isAdding && (
           <div className="space-y-3">
             {posts.map((post) => (

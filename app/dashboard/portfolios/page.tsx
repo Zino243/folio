@@ -28,7 +28,7 @@ export default function PortfoliosPage() {
       }
 
       const [{ data: profileData }, { data: portfoliosData }] = await Promise.all([
-        supabase.from('profiles').select('plan').eq('id', user.id).single(),
+        supabase.from('profiles').select('portfolios_limit').eq('id', user.id).single(),
         supabase.from('portfolios').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       ])
 
@@ -41,7 +41,7 @@ export default function PortfoliosPage() {
     }
   }
 
-  const maxPortfolios = profile?.plan === "pro" ? 5 : 1
+  const maxPortfolios = profile?.portfolios_limit || 1
   const canCreate = portfolios.length < maxPortfolios
 
   if (loading) {
@@ -55,7 +55,6 @@ export default function PortfoliosPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Portfolios</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {portfolios.length} of {maxPortfolios} portfolios used
-            <span className="ml-1 text-xs">({profile?.plan === "pro" ? "Pro" : "Free"} plan)</span>
           </p>
         </div>
         {canCreate ? (
