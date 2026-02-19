@@ -38,6 +38,25 @@ export function PortfolioForm({ portfolio }: PortfolioFormProps) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      if (!portfolio?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('portfolios_limit')
+          .eq('id', user.id)
+          .single()
+
+        if (profile) {
+          const { count } = await supabase
+            .from('portfolios')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+
+          if (count !== null && count >= profile.portfolios_limit) {
+            throw new Error(`Has alcanzado el límite de ${profile.portfolios_limit} portfolios. Compra un pack para crear más.`)
+          }
+        }
+      }
+
       const portfolioData = {
         user_id: user.id,
         name: formData.get('name') as string,

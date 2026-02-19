@@ -65,6 +65,25 @@ export function ProjectForm({ portfolioId, project }: ProjectFormProps) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      if (!project?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('projects_limit')
+          .eq('id', user.id)
+          .single()
+
+        if (profile) {
+          const { count } = await supabase
+            .from('projects')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+
+          if (count !== null && count >= profile.projects_limit) {
+            throw new Error(`Has alcanzado el límite de ${profile.projects_limit} proyectos. Compra un pack para crear más.`)
+          }
+        }
+      }
+
       const projectData = {
         portfolio_id: portfolioId,
         user_id: user.id,
