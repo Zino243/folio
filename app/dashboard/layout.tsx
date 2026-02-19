@@ -2,7 +2,7 @@ import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 
 export const metadata = {
-  title: "Dashboard - Folio",
+  title: "Dashboard - Portlify",
   description: "Manage your portfolios and projects",
 }
 

@@ -1,6 +1,6 @@
 {
-  "name": "folio",
-  "version": "1.0.0",
+  "name": "portlify",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbo -p 3000 -H 0.0.0.0",

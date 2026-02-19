@@ -27,7 +27,7 @@ export function PortfolioPreview() {
             See it in action
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Here is what a portfolio built with Folio looks like.
+            Here is what a portfolio built with Portlify looks like.
           </p>
         </div>
 
@@ -40,7 +40,7 @@ export function PortfolioPreview() {
               <div className="h-3 w-3 rounded-full bg-border" />
             </div>
             <div className="mx-auto rounded-md bg-background px-4 py-1 text-xs text-muted-foreground">
-              folio.app/Zino243
+              portlify.app/Zino243
             </div>
           </div>
 

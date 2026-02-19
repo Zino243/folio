@@ -3,8 +3,8 @@ import { AuthForm } from "@/components/auth/auth-form"
 import { AuthSessionHandler } from "@/components/auth/session-handler"
 
 export const metadata = {
-  title: "Log in - Folio",
-  description: "Log in to your Folio account",
+  title: "Log in - Portlify",
+  description: "Log in to your Portlify account",
 }
 
 export default function LoginPage() {
@@ -15,7 +15,7 @@ export default function LoginPage() {
         <div className="flex flex-1 flex-col justify-center px-6 py-12">
           <div className="mx-auto w-full max-w-sm">
             <Link href="/" className="mb-12 inline-block text-xl font-bold tracking-tight text-foreground">
-              folio
+              portlify
             </Link>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
             <p className="mt-2 text-sm text-muted-foreground">

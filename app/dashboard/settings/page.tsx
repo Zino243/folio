@@ -32,7 +32,7 @@ const plans = [
     ],
     notIncluded: [
       "Custom Domain",
-      "Remove Folio Branding",
+      "Remove Portlify Branding",
       "Priority Support",
     ],
   },
@@ -47,7 +47,7 @@ const plans = [
       "Unlimited Projects",
       "Advanced Analytics",
       "Custom Domain",
-      "Remove Folio Branding",
+      "Remove Portlify Branding",
       "Priority Support",
     ],
     popular: true,

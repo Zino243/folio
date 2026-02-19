@@ -196,7 +196,7 @@ export default async function PublicProjectPage({
           </Link>
         </div>
 
-        {/* Built with Folio */}
+        {/* Built with Portlify */}
         <div className="mt-12 text-center">
           <p className="text-xs text-muted-foreground">
             Built with{" "}
@@ -205,7 +205,7 @@ export default async function PublicProjectPage({
               className="underline hover:no-underline"
               style={{ color: primaryColor }}
             >
-              Folio
+              Portlify
             </a>
           </p>
         </div>

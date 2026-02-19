@@ -11,7 +11,7 @@ export function CTA() {
             Ready to showcase your work?
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Join thousands of developers who use Folio to present their best projects. Free to start.
+            Join thousands of developers who use Portlify to present their best projects. Free to start.
           </p>
           <div className="mt-8">
             <Link href="/register">

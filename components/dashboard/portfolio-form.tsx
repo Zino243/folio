@@ -106,7 +106,7 @@ export function PortfolioForm({ portfolio }: PortfolioFormProps) {
           <div className="space-y-2">
             <Label htmlFor="username">Username (URL)</Label>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">folio.app/</span>
+              <span className="text-sm text-muted-foreground">portlify.app/</span>
               <Input
                 id="username"
                 name="username"
