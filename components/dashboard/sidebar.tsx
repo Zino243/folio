@@ -58,8 +58,8 @@ export function DashboardSidebar() {
 
       <div className="border-t border-border px-3 py-4">
         <div className="rounded-lg bg-accent px-4 py-3">
-          <p className="text-xs font-medium text-foreground">Pro Plan</p>
-          <p className="mt-1 text-xs text-muted-foreground">5 portfolios available</p>
+          <p className="text-xs font-medium text-foreground">portlify.online</p>
+          <p className="mt-1 text-xs text-muted-foreground">Trust us</p>
         </div>
       </div>
     </div>
