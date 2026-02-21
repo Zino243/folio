@@ -5,10 +5,26 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { X, Plus, GraduationCap, Trash2 } from "lucide-react"
+import { X, Plus, GraduationCap, Trash2, GripVertical } from "lucide-react"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 interface Estudio {
   id: string
@@ -26,8 +42,65 @@ interface EstudioFormProps {
   onChange: (estudios: Estudio[]) => void
 }
 
+function SortableEstudio({ 
+  estudio, 
+  onEdit, 
+  onDelete 
+}: { 
+  estudio: Estudio
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: estudio.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : "auto",
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-2">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded mt-1"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <div className="flex-1 flex items-start justify-between rounded-lg border p-3">
+        <div className="space-y-1">
+          <p className="font-medium">{estudio.titulo}</p>
+          <p className="text-sm text-muted-foreground">{estudio.institucion}</p>
+          <p className="text-xs text-muted-foreground">
+            {estudio.fecha_inicio} - {estudio.actualmente_estudiando ? "Present" : estudio.fecha_fin}
+          </p>
+        </div>
+        <div className="flex gap-1">
+          <Button type="button" variant="ghost" size="icon" onClick={onEdit}>
+            <span className="text-xs">Edit</span>
+          </Button>
+          <Button type="button" variant="ghost" size="icon" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function EstudioForm({ estudios, onChange }: EstudioFormProps) {
   const [isAdding, setIsAdding] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<Partial<Estudio>>({
     institucion: "",
@@ -38,36 +111,70 @@ export function EstudioForm({ estudios, onChange }: EstudioFormProps) {
     actualmente_estudiando: false,
   })
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = estudios.findIndex((e) => e.id === active.id)
+      const newIndex = estudios.findIndex((e) => e.id === over.id)
+      
+      const newOrder = arrayMove(estudios, oldIndex, newIndex)
+      
+      const reorderedWithOrder = newOrder.map((est, index) => ({
+        ...est,
+        orden: index,
+      }))
+
+      onChange(reorderedWithOrder)
+
+      const supabase = createClient()
+      await Promise.all(
+        reorderedWithOrder.map((est) =>
+          supabase.from('estudios').update({ orden: est.orden }).eq('id', est.id)
+        )
+      )
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
     
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const submitData = {
+      ...formData,
+      fecha_fin: formData.actualmente_estudiando ? null : formData.fecha_fin,
+    }
+
     try {
       if (editingId) {
         const { error } = await supabase
           .from('estudios')
-          .update({
-            ...formData,
-            fecha_fin: formData.actualmente_estudiando ? null : formData.fecha_fin,
-          })
+          .update(submitData)
           .eq('id', editingId)
         
         if (error) throw error
         
         onChange(estudios.map(est => 
-          est.id === editingId ? { ...est, ...formData } as Estudio : est
+          est.id === editingId ? { ...est, ...submitData } as Estudio : est
         ))
         setEditingId(null)
       } else {
         const { data, error } = await supabase
           .from('estudios')
           .insert({
-            ...formData,
+            ...submitData,
             user_id: user.id,
-            fecha_fin: formData.actualmente_estudiando ? null : formData.fecha_fin,
             orden: estudios.length,
           })
           .select()
@@ -90,6 +197,8 @@ export function EstudioForm({ estudios, onChange }: EstudioFormProps) {
       setIsAdding(false)
     } catch (error) {
       console.error("Error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -140,27 +249,27 @@ export function EstudioForm({ estudios, onChange }: EstudioFormProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {estudios.length > 0 && !isAdding && (
-          <div className="space-y-3">
-            {estudios.map((est) => (
-              <div key={est.id} className="flex items-start justify-between rounded-lg border p-3">
-                <div className="space-y-1">
-                  <p className="font-medium">{est.titulo}</p>
-                  <p className="text-sm text-muted-foreground">{est.institucion}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {est.fecha_inicio} - {est.actualmente_estudiando ? "Present" : est.fecha_fin}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleEdit(est)}>
-                    <span className="text-xs">Edit</span>
-                  </Button>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleDelete(est.id!)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={estudios.map(e => e.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {estudios.map((est) => (
+                  <SortableEstudio
+                    key={est.id}
+                    estudio={est}
+                    onEdit={() => handleEdit(est)}
+                    onDelete={() => handleDelete(est.id)}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {isAdding && (
@@ -189,12 +298,11 @@ export function EstudioForm({ estudios, onChange }: EstudioFormProps) {
 
             <div className="space-y-2">
               <Label htmlFor="descripcion">Description</Label>
-              <Textarea
+              <Input
                 id="descripcion"
                 value={formData.descripcion}
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                 placeholder="What did you study?"
-                rows={3}
               />
             </div>
 
@@ -237,11 +345,11 @@ export function EstudioForm({ estudios, onChange }: EstudioFormProps) {
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={cancelEdit}>
+              <Button type="button" variant="outline" onClick={cancelEdit} disabled={isLoading}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingId ? "Save Changes" : "Add Education"}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : editingId ? "Save Changes" : "Add Education"}
               </Button>
             </div>
           </form>

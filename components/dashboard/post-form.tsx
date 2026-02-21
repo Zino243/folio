@@ -9,8 +9,25 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus, FileText, Trash2 } from "lucide-react"
+import { X, Plus, FileText, Trash2, GripVertical } from "lucide-react"
 import { ImageUpload } from "./image-upload"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 interface Post {
   id: string
@@ -31,8 +48,72 @@ interface PostFormProps {
   blogLimit?: number
 }
 
+function SortablePost({ 
+  post, 
+  onEdit, 
+  onDelete 
+}: { 
+  post: Post
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: post.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : "auto",
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-2">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded mt-1"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <div className="flex-1 flex items-start justify-between rounded-lg border p-3">
+        <div className="space-y-1">
+          <p className="font-medium">{post.titulo}</p>
+          <p className="text-xs text-muted-foreground">/{post.slug}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant={post.estado === 'publicado' ? 'default' : 'secondary'}>
+              {post.estado}
+            </Badge>
+            {post.tags && post.tags.length > 0 && post.tags.map(tag => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <Button type="button" variant="ghost" size="icon" onClick={onEdit}>
+            <span className="text-xs">Edit</span>
+          </Button>
+          <Button type="button" variant="ghost" size="icon" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
   const [isAdding, setIsAdding] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState<Partial<Post>>({
@@ -46,6 +127,13 @@ export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
     estado: "borrador",
   })
   const [tagInput, setTagInput] = useState("")
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   const generateSlug = (title: string) => {
     return title
@@ -93,8 +181,22 @@ export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
     })
   }
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = posts.findIndex((p) => p.id === active.id)
+      const newIndex = posts.findIndex((p) => p.id === over.id)
+      
+      const newOrder = arrayMove(posts, oldIndex, newIndex)
+      
+      onChange(newOrder)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
     setError(null)
     
     const supabase = createClient()
@@ -102,6 +204,7 @@ export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
     if (!user) return
 
     if (!editingId && blogLimit > 0 && posts.length >= blogLimit) {
+      setIsLoading(false)
       setError(`Has alcanzado el límite de ${blogLimit} posts. Compra un pack para crear más.`)
       return
     }
@@ -160,6 +263,8 @@ export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
       setIsAdding(false)
     } catch (error) {
       console.error("Error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -233,34 +338,27 @@ export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
           </div>
         )}
         {posts.length > 0 && !isAdding && (
-          <div className="space-y-3">
-            {posts.map((post) => (
-              <div key={post.id} className="flex items-start justify-between rounded-lg border p-3">
-                <div className="space-y-1">
-                  <p className="font-medium">{post.titulo}</p>
-                  <p className="text-xs text-muted-foreground">/{post.slug}</p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={post.estado === 'publicado' ? 'default' : 'secondary'}>
-                      {post.estado}
-                    </Badge>
-                    {post.tags && post.tags.length > 0 && post.tags.map(tag => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleEdit(post)}>
-                    <span className="text-xs">Edit</span>
-                  </Button>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleDelete(post.id!)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={posts.map(p => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {posts.map((post) => (
+                  <SortablePost
+                    key={post.id}
+                    post={post}
+                    onEdit={() => handleEdit(post)}
+                    onDelete={() => handleDelete(post.id)}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {isAdding && (
@@ -368,11 +466,11 @@ export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={cancelEdit}>
+              <Button type="button" variant="outline" onClick={cancelEdit} disabled={isLoading}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingId ? "Save Changes" : "Add Post"}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : editingId ? "Save Changes" : "Add Post"}
               </Button>
             </div>
           </form>

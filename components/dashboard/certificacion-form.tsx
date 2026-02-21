@@ -7,8 +7,25 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { X, Plus, Award, Trash2 } from "lucide-react"
+import { X, Plus, Award, Trash2, GripVertical } from "lucide-react"
 import { ImageUpload } from "./image-upload"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 interface Certificacion {
   id: string
@@ -25,8 +42,71 @@ interface CertificacionFormProps {
   onChange: (certificaciones: Certificacion[]) => void
 }
 
+function SortableCertificacion({ 
+  certificacion, 
+  onEdit, 
+  onDelete 
+}: { 
+  certificacion: Certificacion
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: certificacion.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : "auto",
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-2">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded mt-1"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <div className="flex-1 flex items-start justify-between rounded-lg border p-3">
+        <div className="flex gap-3">
+          {certificacion.imagen_url ? (
+            <img src={certificacion.imagen_url} alt={certificacion.nombre} className="h-12 w-12 rounded object-cover" />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded bg-secondary">
+              <Award className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+          <div className="space-y-1">
+            <p className="font-medium text-sm">{certificacion.nombre}</p>
+            <p className="text-xs text-muted-foreground">{certificacion.issuer}</p>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <Button type="button" variant="ghost" size="icon" onClick={onEdit}>
+            <span className="text-xs">Edit</span>
+          </Button>
+          <Button type="button" variant="ghost" size="icon" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function CertificacionForm({ certificaciones, onChange }: CertificacionFormProps) {
   const [isAdding, setIsAdding] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<Partial<Certificacion>>({
     nombre: "",
@@ -36,31 +116,74 @@ export function CertificacionForm({ certificaciones, onChange }: CertificacionFo
     imagen_url: "",
   })
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const normalizeUrl = (url: string) => {
+    if (!url) return ""
+    return url.startsWith('http') ? url : `https://${url}`
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = certificaciones.findIndex((c) => c.id === active.id)
+      const newIndex = certificaciones.findIndex((c) => c.id === over.id)
+      
+      const newOrder = arrayMove(certificaciones, oldIndex, newIndex)
+      
+      const reorderedWithOrder = newOrder.map((cert, index) => ({
+        ...cert,
+        orden: index,
+      }))
+
+      onChange(reorderedWithOrder)
+
+      const supabase = createClient()
+      await Promise.all(
+        reorderedWithOrder.map((cert) =>
+          supabase.from('certificaciones').update({ orden: cert.orden }).eq('id', cert.id)
+        )
+      )
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
     
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const submitData = {
+      ...formData,
+      url_certificado: normalizeUrl(formData.url_certificado || ""),
+    }
+
     try {
       if (editingId) {
         const { error } = await supabase
           .from('certificaciones')
-          .update(formData)
+          .update(submitData)
           .eq('id', editingId)
         
         if (error) throw error
         
         onChange(certificaciones.map(cert => 
-          cert.id === editingId ? { ...cert, ...formData } as Certificacion : cert
+          cert.id === editingId ? { ...cert, ...submitData } as Certificacion : cert
         ))
         setEditingId(null)
       } else {
         const { data, error } = await supabase
           .from('certificaciones')
           .insert({
-            ...formData,
+            ...submitData,
             user_id: user.id,
             orden: certificaciones.length,
           })
@@ -83,6 +206,8 @@ export function CertificacionForm({ certificaciones, onChange }: CertificacionFo
       setIsAdding(false)
     } catch (error) {
       console.error("Error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -132,33 +257,27 @@ export function CertificacionForm({ certificaciones, onChange }: CertificacionFo
       </CardHeader>
       <CardContent className="space-y-4">
         {certificaciones.length > 0 && !isAdding && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {certificaciones.map((cert) => (
-              <div key={cert.id} className="flex items-start justify-between rounded-lg border p-3">
-                <div className="flex gap-3">
-                  {cert.imagen_url ? (
-                    <img src={cert.imagen_url} alt={cert.nombre} className="h-12 w-12 rounded object-cover" />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded bg-secondary">
-                      <Award className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    <p className="font-medium text-sm">{cert.nombre}</p>
-                    <p className="text-xs text-muted-foreground">{cert.issuer}</p>
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleEdit(cert)}>
-                    <span className="text-xs">Edit</span>
-                  </Button>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleDelete(cert.id)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={certificaciones.map(c => c.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                {certificaciones.map((cert) => (
+                  <SortableCertificacion
+                    key={cert.id}
+                    certificacion={cert}
+                    onEdit={() => handleEdit(cert)}
+                    onDelete={() => handleDelete(cert.id)}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {isAdding && (
@@ -216,11 +335,11 @@ export function CertificacionForm({ certificaciones, onChange }: CertificacionFo
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={cancelEdit}>
+              <Button type="button" variant="outline" onClick={cancelEdit} disabled={isLoading}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingId ? "Save Changes" : "Add Certification"}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : editingId ? "Save Changes" : "Add Certification"}
               </Button>
             </div>
           </form>

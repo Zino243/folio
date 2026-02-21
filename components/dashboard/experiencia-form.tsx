@@ -10,7 +10,24 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus, Briefcase, Trash2 } from "lucide-react"
+import { X, Plus, Briefcase, Trash2, GripVertical } from "lucide-react"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 interface Experiencia {
   id: string
@@ -29,8 +46,65 @@ interface ExperienciaFormProps {
   onChange: (experiencias: Experiencia[]) => void
 }
 
+function SortableExperiencia({ 
+  experiencia, 
+  onEdit, 
+  onDelete 
+}: { 
+  experiencia: Experiencia
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: experiencia.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : "auto",
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-2">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted rounded mt-1"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <div className="flex-1 flex items-start justify-between rounded-lg border p-3">
+        <div className="space-y-1">
+          <p className="font-medium">{experiencia.cargo}</p>
+          <p className="text-sm text-muted-foreground">{experiencia.empresa}</p>
+          <p className="text-xs text-muted-foreground">
+            {experiencia.fecha_inicio} - {experiencia.actualmente_trabajando ? "Present" : experiencia.fecha_fin}
+          </p>
+        </div>
+        <div className="flex gap-1">
+          <Button type="button" variant="ghost" size="icon" onClick={onEdit}>
+            <span className="text-xs">Edit</span>
+          </Button>
+          <Button type="button" variant="ghost" size="icon" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ExperienciaForm({ experiencias, onChange }: ExperienciaFormProps) {
   const [isAdding, setIsAdding] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<Partial<Experiencia>>({
     empresa: "",
@@ -42,36 +116,76 @@ export function ExperienciaForm({ experiencias, onChange }: ExperienciaFormProps
     actualmente_trabajando: false,
   })
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const normalizeUrl = (url: string) => {
+    if (!url) return ""
+    return url.startsWith('http') ? url : `https://${url}`
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = experiencias.findIndex((e) => e.id === active.id)
+      const newIndex = experiencias.findIndex((e) => e.id === over.id)
+      
+      const newOrder = arrayMove(experiencias, oldIndex, newIndex)
+      
+      const reorderedWithOrder = newOrder.map((exp, index) => ({
+        ...exp,
+        orden: index,
+      }))
+
+      onChange(reorderedWithOrder)
+
+      const supabase = createClient()
+      await Promise.all(
+        reorderedWithOrder.map((exp) =>
+          supabase.from('experiencias').update({ orden: exp.orden }).eq('id', exp.id)
+        )
+      )
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
     
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const submitData = {
+      ...formData,
+      sitio_web: normalizeUrl(formData.sitio_web || ""),
+      fecha_fin: formData.actualmente_trabajando ? null : formData.fecha_fin,
+    }
+
     try {
       if (editingId) {
         const { error } = await supabase
           .from('experiencias')
-          .update({
-            ...formData,
-            fecha_fin: formData.actualmente_trabajando ? null : formData.fecha_fin,
-          })
+          .update(submitData)
           .eq('id', editingId)
         
         if (error) throw error
         
         onChange(experiencias.map(exp => 
-          exp.id === editingId ? { ...exp, ...formData } as Experiencia : exp
+          exp.id === editingId ? { ...exp, ...submitData } as Experiencia : exp
         ))
         setEditingId(null)
       } else {
         const { data, error } = await supabase
           .from('experiencias')
           .insert({
-            ...formData,
+            ...submitData,
             user_id: user.id,
-            fecha_fin: formData.actualmente_trabajando ? null : formData.fecha_fin,
             orden: experiencias.length,
           })
           .select()
@@ -95,6 +209,8 @@ export function ExperienciaForm({ experiencias, onChange }: ExperienciaFormProps
       setIsAdding(false)
     } catch (error) {
       console.error("Error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -146,27 +262,27 @@ export function ExperienciaForm({ experiencias, onChange }: ExperienciaFormProps
       </CardHeader>
       <CardContent className="space-y-4">
         {experiencias.length > 0 && !isAdding && (
-          <div className="space-y-3">
-            {experiencias.map((exp) => (
-              <div key={exp.id} className="flex items-start justify-between rounded-lg border p-3">
-                <div className="space-y-1">
-                  <p className="font-medium">{exp.cargo}</p>
-                  <p className="text-sm text-muted-foreground">{exp.empresa}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {exp.fecha_inicio} - {exp.actualmente_trabajando ? "Present" : exp.fecha_fin}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleEdit(exp)}>
-                    <span className="text-xs">Edit</span>
-                  </Button>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleDelete(exp.id!)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={experiencias.map(e => e.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {experiencias.map((exp) => (
+                  <SortableExperiencia
+                    key={exp.id}
+                    experiencia={exp}
+                    onEdit={() => handleEdit(exp)}
+                    onDelete={() => handleDelete(exp.id)}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {isAdding && (
@@ -209,6 +325,7 @@ export function ExperienciaForm({ experiencias, onChange }: ExperienciaFormProps
               <Label htmlFor="sitio_web">Company Website</Label>
               <Input
                 id="sitio_web"
+                type="url"
                 value={formData.sitio_web}
                 onChange={(e) => setFormData({ ...formData, sitio_web: e.target.value })}
                 placeholder="https://company.com"
@@ -254,11 +371,11 @@ export function ExperienciaForm({ experiencias, onChange }: ExperienciaFormProps
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={cancelEdit}>
+              <Button type="button" variant="outline" onClick={cancelEdit} disabled={isLoading}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingId ? "Save Changes" : "Add Experience"}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Saving..." : editingId ? "Save Changes" : "Add Experience"}
               </Button>
             </div>
           </form>

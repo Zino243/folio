@@ -24,9 +24,30 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     .single()
 
   if (!portfolio) return { title: "Not Found" }
+
+  const title = portfolio.seo_title || portfolio.name || `${username}'s Portfolio`
+  const description = portfolio.seo_description || portfolio.description || `Check out ${username}'s portfolio`
+  const image = portfolio.image_url || portfolio.avatar_url
+
   return {
-    title: portfolio.seo_title || portfolio.name,
-    description: portfolio.seo_description || portfolio.description,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'profile',
+      url: `https://portlify.online/${username}`,
+      images: image ? [{ url: image }] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: image ? [image] : [],
+    },
+    alternates: {
+      canonical: `https://portlify.online/${username}`,
+    },
   }
 }
 
@@ -46,10 +67,10 @@ export default async function PublicPortfolioPage({ params }: { params: Promise<
 
   const [projectsResult, experienciasResult, estudiosResult, tecnologiasResult, postsResult, certificacionesResult, faqsResult, softSkillsResult] = await Promise.all([
     supabase.from('projects').select('*').eq('portfolio_id', portfolio.id).order('created_at', { ascending: false }),
-    supabase.from('experiencias').select('*').eq('user_id', userId).order('fecha_inicio', { ascending: false }),
-    supabase.from('estudios').select('*').eq('user_id', userId).order('fecha_inicio', { ascending: false }),
+    supabase.from('experiencias').select('*').eq('user_id', userId).order('orden', { ascending: true }),
+    supabase.from('estudios').select('*').eq('user_id', userId).order('orden', { ascending: true }),
     supabase.from('tecnologias').select('*').eq('user_id', userId).order('orden', { ascending: true }),
-    supabase.from('posts').select('*').eq('user_id', userId).eq('estado', 'publicado').order('published_at', { ascending: false }),
+    supabase.from('posts').select('*').eq('user_id', userId).eq('estado', 'publicado').order('orden', { ascending: true }),
     supabase.from('certificaciones').select('*').eq('user_id', userId).order('orden', { ascending: true }),
     supabase.from('faqs').select('*').eq('user_id', userId).order('orden', { ascending: true }),
     supabase.from('soft_skills').select('*').eq('user_id', userId).order('orden', { ascending: true })
