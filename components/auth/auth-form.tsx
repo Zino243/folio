@@ -72,6 +72,29 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
   }
 
+  const handleGoogleLogin = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    const baseUrl = window.location.hostname === 'portlify.online' 
+      ? 'https://portlify.online'
+      : 'http://localhost:3000'
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${baseUrl}/auth/callback`,
+        },
+      })
+      if (error) throw error
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {error && (
@@ -107,7 +130,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Button variant="outline" className="w-full" type="button">
+        <Button variant="outline" className="w-full" type="button" onClick={handleGoogleLogin} disabled={isLoading}>
           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
@@ -128,7 +151,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           </svg>
           Google
         </Button>
-        <Button variant="outline" className="w-full" type="button">
+        <Button variant="outline" className="w-full" type="button" disabled>
           <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path
               fillRule="evenodd"
