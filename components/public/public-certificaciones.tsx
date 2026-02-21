@@ -25,7 +25,7 @@ export function PublicCertificaciones({ certificaciones, primaryColor = "#000000
         {certificaciones.map((cert, index) => (
           <a
             key={index}
-            href={cert.url_certificado || '#'}
+            href={cert.url_certificado ? (cert.url_certificado.startsWith('http') ? cert.url_certificado : `https://${cert.url_certificado}`) : '#'}
             target={cert.url_certificado ? "_blank" : "_self"}
             rel={cert.url_certificado ? "noopener noreferrer" : undefined}
             className="group flex items-start gap-4 rounded-lg border border-border p-4 transition-all hover:border-transparent hover:shadow-md"

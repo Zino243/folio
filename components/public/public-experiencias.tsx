@@ -34,7 +34,7 @@ export function PublicExperiencias({ experiencias, primaryColor = "#000000" }: P
                     {exp.empresa}
                     {exp.sitio_web && (
                       <a 
-                        href={exp.sitio_web} 
+                        href={exp.sitio_web.startsWith('http') ? exp.sitio_web : `https://${exp.sitio_web}`}
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="ml-2 text-xs hover:underline"

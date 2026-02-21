@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   
@@ -20,13 +22,15 @@ export default async function DashboardPage() {
 
   const { data: portfolios } = await supabase
     .from('portfolios')
-    .select('*')
+    .select('id')
     .eq('user_id', user.id)
+
+  const portfolioIds = portfolios?.map(p => p.id) || []
 
   const { data: projects } = await supabase
     .from('projects')
     .select('*')
-    .eq('user_id', user.id)
+    .in('portfolio_id', portfolioIds.length > 0 ? portfolioIds : [''])
     .order('created_at', { ascending: false })
 
   const stats = [
@@ -50,8 +54,8 @@ export default async function DashboardPage() {
     },
     {
       title: "Total Views",
-      value: "0",
-      subtitle: "Last 30 days",
+      value: "In progress",
+      subtitle: "Coming soon",
       icon: Eye,
     },
   ]

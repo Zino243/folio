@@ -23,11 +23,14 @@ interface Tecnologia {
 
 const CATEGORIAS = [
   "Frontend",
-  "Backend",
+  "Backend", 
   "Database",
   "DevOps",
   "Mobile",
   "Design",
+  "Tools",
+  "Software",
+  "Techniques",
   "Other"
 ]
 
@@ -207,19 +210,18 @@ export function TecnologiaForm({ tecnologias, onChange }: TecnologiaFormProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="categoria">Category</Label>
-                <Select
+                <Input
+                  id="categoria"
                   value={formData.categoria}
-                  onValueChange={(value) => setFormData({ ...formData, categoria: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIAS.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                  placeholder="Frontend, Design, Software, Techniques..."
+                  list="categorias-suggestions"
+                />
+                <datalist id="categorias-suggestions">
+                  {CATEGORIAS.map((cat) => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
               </div>
             </div>
 
