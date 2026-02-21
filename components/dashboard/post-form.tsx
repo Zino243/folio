@@ -203,9 +203,13 @@ export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    if (!editingId && blogLimit > 0 && posts.length >= blogLimit) {
+    if (!editingId && posts.length >= blogLimit) {
       setIsLoading(false)
-      setError(`Has alcanzado el límite de ${blogLimit} posts. Compra un pack para crear más.`)
+      if (blogLimit === 0) {
+        setError("No tienes un pack de blog comprado. Compra uno para crear posts.")
+      } else {
+        setError(`Has alcanzado el límite de ${blogLimit} posts. Compra un pack para crear más.`)
+      }
       return
     }
 
@@ -319,8 +323,12 @@ export function PostForm({ posts, onChange, blogLimit = 0 }: PostFormProps) {
             variant="outline" 
             size="sm" 
             onClick={() => {
-              if (blogLimit > 0 && posts.length >= blogLimit) {
-                setError(`Has alcanzado el límite de ${blogLimit} posts. Compra un pack para crear más.`)
+              if (posts.length >= blogLimit) {
+                if (blogLimit === 0) {
+                  setError("No tienes un pack de blog comprado. Compra uno para crear posts.")
+                } else {
+                  setError(`Has alcanzado el límite de ${blogLimit} posts. Compra un pack para crear más.`)
+                }
               } else {
                 setIsAdding(true)
               }

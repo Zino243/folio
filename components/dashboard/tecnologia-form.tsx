@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { X, Plus, Code, Trash2, GripVertical } from "lucide-react"
 import { ImageUpload } from "./image-upload"
 import {
@@ -322,7 +323,7 @@ export function TecnologiaForm({ tecnologias, onChange }: TecnologiaFormProps) {
                   id="categoria"
                   value={formData.categoria}
                   onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                  placeholder="Frontend, Design, Software, Techniques..."
+                  placeholder="Frontend, Backend, Mobile..."
                   list="categorias-suggestions"
                 />
                 <datalist id="categorias-suggestions">
@@ -338,7 +339,7 @@ export function TecnologiaForm({ tecnologias, onChange }: TecnologiaFormProps) {
                 <Label htmlFor="nivel">Level (optional)</Label>
                 <Input
                   id="nivel"
-                  value={formData.nivel}
+                  value={formData.nivel || ""}
                   onChange={(e) => setFormData({ ...formData, nivel: e.target.value })}
                   placeholder="Intermediate, Advanced, 2D, 3D..."
                   list="nivel-suggestions"
