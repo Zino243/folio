@@ -70,7 +70,7 @@ export default async function PublicPortfolioPage({ params }: { params: Promise<
     supabase.from('experiencias').select('*').eq('user_id', userId).order('orden', { ascending: true }),
     supabase.from('estudios').select('*').eq('user_id', userId).order('orden', { ascending: true }),
     supabase.from('tecnologias').select('*').eq('user_id', userId).order('orden', { ascending: true }),
-    supabase.from('posts').select('*').eq('user_id', userId).eq('estado', 'publicado').order('orden', { ascending: true }),
+    supabase.from('posts').select('*').eq('user_id', userId).eq('estado', 'publicado').order('published_at', { ascending: false }),
     supabase.from('certificaciones').select('*').eq('user_id', userId).order('orden', { ascending: true }),
     supabase.from('faqs').select('*').eq('user_id', userId).order('orden', { ascending: true }),
     supabase.from('soft_skills').select('*').eq('user_id', userId).order('orden', { ascending: true })
