@@ -76,8 +76,8 @@ export function AuthForm({ mode }: AuthFormProps) {
     setIsLoading(true)
     setError(null)
 
-    const baseUrl = window.location.hostname === 'portlify.online' 
-      ? 'https://portlify.online'
+    const baseUrl = window.location.hostname.includes('portlify.online') 
+      ? 'https://www.portlify.online'
       : 'http://localhost:3000'
 
     try {
@@ -85,10 +85,16 @@ export function AuthForm({ mode }: AuthFormProps) {
         provider: 'google',
         options: {
           redirectTo: `${baseUrl}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
+      console.log('OAuth redirectTo:', `${baseUrl}/auth/callback`)
       if (error) throw error
     } catch (err: any) {
+      console.error('OAuth error:', err)
       setError(err.message)
     } finally {
       setIsLoading(false)
