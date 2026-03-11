@@ -1,23 +1,29 @@
-import { Layers, Zap, Globe } from "lucide-react"
+import { Layers, Zap, Globe, Search } from "lucide-react"
 
 const features = [
   {
     icon: Layers,
     title: "Multiple Portfolios",
     description:
-      "Create separate portfolios for different audiences. Developers, designers, freelancers - organize your work your way.",
+      "Create separate portfolios for different audiences. Developers, designers, freelancers - organize your work your way. Each portfolio has its own custom URL.",
   },
   {
     icon: Zap,
     title: "Instant Setup",
     description:
-      "No complex configuration. Add your projects, customize your theme, and publish. Your portfolio is live in minutes.",
+      "No complex configuration. Add your projects, customize your theme, and publish. Your online portfolio is live in minutes. Fully responsive and mobile-first.",
+  },
+  {
+    icon: Search,
+    title: "SEO Optimized",
+    description:
+      "Every portfolio is SEO optimized. Automatic meta tags, sitemap, Schema.org and friendly URLs. So recruiters and clients can find you easily on Google.",
   },
   {
     icon: Globe,
     title: "Public Pages",
     description:
-      "Every portfolio gets a clean, shareable URL. Optimized for SEO so recruiters and clients can find you effortlessly.",
+      "Every portfolio gets a clean, shareable URL. Share your online resume or digital portfolio on LinkedIn, Twitter or any social network. Free SSL included.",
   },
 ]
 
@@ -34,7 +40,7 @@ export function Features() {
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => (
             <div
               key={feature.title}

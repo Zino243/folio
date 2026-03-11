@@ -28,7 +28,7 @@ export function Navbar() {
             </Button>
           </Link>
           <Link href="/register">
-            <Button size="sm">Get Started</Button>
+            <Button size="sm">Sign up</Button>
           </Link>
         </div>
 
@@ -57,7 +57,7 @@ export function Navbar() {
             </Link>
             <Link href="/register" onClick={() => setMobileOpen(false)}>
               <Button size="sm" className="w-full">
-                Get Started
+                Sign up
               </Button>
             </Link>
           </div>

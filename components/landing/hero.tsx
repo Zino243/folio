@@ -8,7 +8,7 @@ export function Hero() {
       <div className="mx-auto max-w-6xl px-6 py-24 md:py-32 lg:py-40">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center rounded-full border border-border bg-secondary px-4 py-1.5 text-xs font-medium text-muted-foreground">
-            Now in public beta
+            Now in public beta - Free forever!
           </div>
           <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
             Build your portfolio.
@@ -16,7 +16,9 @@ export function Hero() {
             <span className="text-muted-foreground">Ship it in minutes.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
-            Create a stunning developer portfolio with zero config. Showcase your best projects, share your story, and get discovered.
+            Portfolio builder for developers, designers and freelancers. 
+            Create your personal website, online resume or digital portfolio. 
+            Totally free, no code, SEO optimized.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link href="/register">

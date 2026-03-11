@@ -19,7 +19,7 @@ export function Footer() {
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
-            {'2026 Portlify. All rights reserved.'}
+            2026 Portlify. All rights reserved.
           </p>
         </div>
       </div>
